@@ -1,0 +1,42 @@
+name: Testing Workflow
+
+on: [push]
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup Go environment
+      uses: actions/setup-go@v3.5.0
+      with:
+        go-version: '1.20'
+        # check-latest: true
+    - name: Ensure tests are implemented
+      run: make complete
+    - name: Run all our unit tests and benchmarks
+      run: go test -v -bench=. ./...
+    - name: Run fuzz tests
+      run: go test -v -fuzz=FuzzParseEquation -fuzztime=10s ./...
+    - name: Upload Fuzz Corpus
+      uses: actions/upload-artifact@v3
+      with:
+        name: corpus
+        path: '**/fuzz/'
+        # retention-days: 14
+
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.51.2
